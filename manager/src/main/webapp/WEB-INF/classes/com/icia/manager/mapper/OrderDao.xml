@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.icia.manager.dao.OrderDao">
+
+<!-- 예약 resultMap -->
+<resultMap type="com.icia.manager.model.Order" id="orderResultMap">
+<id column="ORDER_UID" property="orderUID"/>
+<result column="SHOP_UID" property="shopUID"/>
+<result column="USER_UID" property="userUID"/>
+<result column="RESERVATION_PEOPLE" property="reservationPeople"/>
+<result column="ORDER_STATUS" property="orderStatus"/>
+<result column="PAY_TYPE" property="payType"/>
+<result column="TOTAL_AMOUNT" property="totalAmount"/>
+<result column="PAYMENT_KEY" property="paymentKey"/>
+<result column="REG_DATE" property="regDate"/>
+<result column="R_DATE" property="rDate"/>
+<result column="SHOP_NAME" property="shopName"/>
+<result column="USER_NAME" property="userName"/>
+<result column="RNUM" property="rNum" /> 
+<collection property="orderMenu" resultMap="orderMenuResultMap"/>
+<collection property="shopReservationTable" resultMap="shopReservationTableResultMap"/>
+</resultMap>
+
+<!-- 예약메뉴  resultMap -->
+<resultMap id="orderMenuResultMap" type="com.icia.manager.model.OrderMenu">
+<result column="ORDER_UID" property="orderUID"/>
+<result column="ORDER_MENU_NAME" property="orderMenuName"/>
+<result column="ORDER_MENU_PRICE" property="orderMenuPrice"/>
+<result column="ORDER_MENU_QUANTITY" property="orderMenuQuantity"/>
+</resultMap>
+
+<!-- 매장 태이블 상태 resultMap-->
+<resultMap id="shopReservationTableResultMap" type="com.icia.manager.model.ShopReservationTable"> 
+<result column="TABLE_UID" property="shopTableUID"/>
+<result column="TABLE_STATUS" property="shopTableStatus"/>
+<result column="RESERVATION_DATE" property="shopReservationDate"/>
+<result column="RESERVATION_TIME" property="shopReservationTime"/>
+<result column="ORDER_UID" property="orderUID"/>
+</resultMap>
+   
+<!--예약 리스트-->
+<select id="orderList" parameterType="com.icia.manager.model.Order" resultMap="orderResultMap">
+SELECT RNUM,
+       ORDER_UID,
+       USER_UID,
+       SHOP_UID,
+       ORDER_MENU_NAME,
+       SHOP_NAME,
+       USER_NAME,
+       RESERVATION_PEOPLE,
+       ORDER_STATUS,
+       PAY_TYPE,
+       TOTAL_AMOUNT,
+       R_DATE
+  FROM (SELECT ROWNUM AS RNUM,
+               ORDER_UID,
+               USER_UID,
+               SHOP_UID,
+               ORDER_MENU_NAME,
+               SHOP_NAME,
+               USER_NAME,
+               RESERVATION_PEOPLE,
+               ORDER_STATUS,
+               PAY_TYPE,
+               TOTAL_AMOUNT,
+               R_DATE
+          FROM (SELECT DISTINCT A.ORDER_UID,
+                               NVL(D.USER_UID, '') AS USER_UID, 
+                               NVL(C.SHOP_UID, '') AS SHOP_UID,
+                               NVL(B.ORDER_MENU_NAME, '') AS ORDER_MENU_NAME,
+                               NVL(C.SHOP_NAME, '') AS SHOP_NAME,
+                               NVL(D.USER_NAME, '') AS USER_NAME,
+                               NVL(A.RESERVATION_PEOPLE, 0) AS RESERVATION_PEOPLE,
+                               NVL(A.ORDER_STATUS, '') AS ORDER_STATUS,
+                               NVL(A.PAY_TYPE, '') AS PAY_TYPE,
+                               NVL(A.TOTAL_AMOUNT, 0) AS TOTAL_AMOUNT,
+                               NVL(SUBSTR(E.RESERVATION_DATE,1,4)||'-'||SUBSTR(E.RESERVATION_DATE,5,2)||
+                                '-'||SUBSTR(E.RESERVATION_DATE,7,2)||' '||SUBSTR(E.RESERVATION_TIME,1,2)||':'||SUBSTR(E.RESERVATION_TIME,3,2), '') AS R_DATE
+                  FROM T_ORDER A, T_SHOP C, T_USER D, T_SHOP_RESERVATION_TABLE E,(SELECT F.ORDER_UID, LISTAGG(F.ORDER_MENU_NAME, ',') AS ORDER_MENU_NAME
+                                                                                    FROM T_ORDER_MENU F
+                                                                                   GROUP BY ORDER_UID) B
+                 WHERE A.ORDER_UID = B.ORDER_UID
+                   AND A.SHOP_UID = C.SHOP_UID
+                   AND A.USER_UID = D.USER_UID
+                   AND A.ORDER_UID = E.ORDER_UID
+                <if test='shopName != null and shopName != ""'>
+                   AND SHOP_NAME LIKE '%' || #{shopName} || '%'
+			    </if>
+			    <if test='userName != null and userName != ""'>
+                   AND USER_NAME LIKE '%' || #{userName} || '%'
+			    </if>
+			    <if test='orderUID != null and orderUID != ""'>
+                   AND ORDER_UID LIKE '%' || #{orderUID} || '%'
+				</if>
+				<if test='orderStatus != null and orderStatus != ""'>
+			       AND ORDER_STATUS  = #{orderStatus}
+			    </if> 
+                 ORDER BY R_DATE DESC))
+ WHERE RNUM <![CDATA[>=]]>  #{startRow}
+   AND RNUM <![CDATA[<=]]>  #{endRow}
+ ORDER BY RNUM ASC
+</select>
+
+<!-- 총 예약 수 -->
+<select id="orderListCount" resultType="long" parameterType="com.icia.manager.model.Order">
+SELECT COUNT(A.ORDER_UID) AS CNT
+  FROM T_ORDER A, T_USER B, T_SHOP C
+ WHERE A.USER_UID = B.USER_UID
+   AND A.SHOP_UID = C.SHOP_UID
+<if test='shopName != null and shopName != ""'>
+   AND SHOP_NAME LIKE '%' || #{shopName} || '%'
+</if>
+<if test='userName != null and userName != ""'>
+   AND USER_NAME LIKE '%' || #{userName} || '%'
+</if>
+<if test='orderUID != null and orderUID != ""'>
+   AND ORDER_UID LIKE '%' || #{orderUID} || '%'
+</if> 
+<if test='orderStatus != null and orderStatus != ""'>
+   AND ORDER_STATUS  = #{orderStatus}
+</if> 
+</select>
+
+<!-- 예약 조회 -->
+<select id="orderSelect" parameterType="string" resultMap="orderResultMap">
+SELECT A.ORDER_UID,
+       NVL(A.SHOP_UID, '') AS SHOP_UID,
+       NVL(A.USER_UID, '') AS USER_UID,
+       NVL(C.SHOP_NAME, '') AS SHOP_NAME,
+       NVL(D.USER_NAME, '') AS USER_NAME,
+       NVL(B.ORDER_MENU_NAME, '') AS ORDER_MENU_NAME,
+       NVL(B.ORDER_MENU_PRICE, 0) AS ORDER_MENU_PRICE,
+       NVL(B.ORDER_MENU_QUANTITY, 0) AS ORDER_MENU_QUANTITY,
+       NVL(A.RESERVATION_PEOPLE, 0) AS RESERVATION_PEOPLE,
+       NVL(A.ORDER_STATUS, '') AS ORDER_STATUS,
+       NVL(A.PAY_TYPE, '') AS PAY_TYPE,
+       NVL(A.TOTAL_AMOUNT, 0) AS TOTAL_AMOUNT,
+       NVL(A.PAYMENT_KEY, '') AS PAYMENT_KEY,
+       NVL(SUBSTR(E.RESERVATION_DATE,1,4)||'-'||SUBSTR(E.RESERVATION_DATE,5,2)||
+       '-'||SUBSTR(E.RESERVATION_DATE,7,2)||' '||SUBSTR(E.RESERVATION_TIME,1,2)||':'||SUBSTR(E.RESERVATION_TIME,3,2), '') AS R_DATE
+  FROM T_ORDER A, T_ORDER_MENU B, T_SHOP C, T_USER D, T_SHOP_RESERVATION_TABLE E
+ WHERE A.ORDER_UID = #{value}
+   AND A.ORDER_UID = B.ORDER_UID
+   AND A.SHOP_UID = C.SHOP_UID
+   AND A.USER_UID = D.USER_UID
+   AND A.ORDER_UID = E.ORDER_UID
+</select>
+
+<!-- 예약 수정 -->
+<update id="orderUpdate" parameterType="com.icia.manager.model.Order">
+UPDATE T_ORDER
+   SET ORDER_STATUS = #{orderStatus}
+ WHERE ORDER_UID = #{orderUID}
+</update>
+
+</mapper>

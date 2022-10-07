@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.icia.manager.dao.ReportDao">
+
+<!-- 신고 resultMap -->
+<resultMap id="reportResultMap" type="com.icia.manager.model.Report">
+   <result column="BBS_SEQ" property="bbsSeq" />
+   <result column="USER_UID" property="userUID" />
+   <result column="USER_ID" property="userId" />
+   <result column="USER_NICK" property="userNick" />
+   <result column="BBS_TITLE" property="bbsTitle" />
+   <result column="BBS_CONTENT" property="bbsContent" />
+   <result column="REPORT1" property="report1" />
+   <result column="REPORT2" property="report2" />
+   <result column="REPORT3" property="report3" />
+   <result column="REPORT4" property="report4" />
+   <result column="ETC_REPORT" property="etcReport" />
+   <result column="REG_DATE" property="regDate" />
+   <result column="RNUM" property="rNum" /> 
+</resultMap>
+
+
+<!-- 신고 리스트 -->
+<select id="reportList" parameterType="com.icia.manager.model.Report" resultMap="reportResultMap">
+SELECT RNUM,
+       BBS_SEQ,
+       USER_UID,
+       USER_NICK,
+       BBS_TITLE,
+       BBS_CONTENT,
+       REPORT1,
+       REPORT2,
+       REPORT3,
+       REPORT4,
+       ETC_REPORT,
+       REG_DATE
+  FROM (SELECT ROWNUM AS RNUM,
+               BBS_SEQ,
+               USER_UID,
+    		   USER_NICK,
+               BBS_TITLE,
+               BBS_CONTENT,
+               REPORT1,
+               REPORT2,
+               REPORT3,
+               REPORT4,
+               ETC_REPORT,
+               REG_DATE
+          FROM (SELECT A.BBS_SEQ,
+                       A.USER_UID,
+                       NVL(C.USER_NICK, '') AS USER_NICK, 
+                       NVL(B.BBS_TITLE, '') AS BBS_TITLE,
+                   	   NVL(B.BBS_CONTENT, '') AS BBS_CONTENT,
+                       NVL(A.REPORT1, '') AS REPORT1,
+                       NVL(A.REPORT2, '') AS REPORT2,
+                       NVL(A.REPORT3, '') AS REPORT3,
+                       NVL(A.REPORT4, '') AS REPORT4,
+                       NVL(A.ETC_REPORT, '') AS ETC_REPORT,
+                       NVL(TO_CHAR(A.REG_DATE, 'YYYY-MM-DD HH24:MI:SS'), '') AS REG_DATE
+                  FROM T_BOARD_REPORT A, T_BOARD B, T_USER C
+                 WHERE A.BBS_SEQ = B.BBS_SEQ
+                   AND A.USER_UID = C.USER_UID
+				<if test='userNick != null and userNick != ""'> 
+          		   AND C.USER_NICK LIKE '%' || #{userNick} || '%'
+				</if>
+	    		<if test='bbsTitle != null and bbsTitle != ""'>
+          		 AND B.BBS_TITLE LIKE '%' || #{bbsTitle} || '%'
+			    </if>
+			    <if test='bbsContent != null and bbsContent != ""'>
+          		 AND DBMS_LOB.INSTR(B.BBS_CONTENT, #{bbsContent}) > 0
+				</if>
+               ORDER BY A.REG_DATE DESC))
+
+ WHERE RNUM <![CDATA[>=]]> #{startRow}
+   AND RNUM <![CDATA[<=]]> #{endRow}
+ ORDER BY RNUM ASC
+</select>
+
+<!-- 총 신고 수 -->
+<select id="reportListCount" parameterType="com.icia.manager.model.Report" resultType="long">
+SELECT COUNT(A.BBS_SEQ) AS CNT
+  FROM T_BOARD_REPORT A, T_BOARD B, T_USER C
+ WHERE A.BBS_SEQ = B.BBS_SEQ
+   AND A.USER_UID = C.USER_UID
+<if test='userNick != null and userNick != ""'>    
+   AND C.USER_NICK LIKE '%' || #{userNick} || '%'
+</if>
+<if test='bbsTitle != null and bbsTitle != ""'>
+   AND B.BBS_TITLE LIKE '%' || #{bbsTitle} || '%'
+</if>
+<if test='bbsContent != null and bbsContent != ""'>
+   AND DBMS_LOB.INSTR(B.BBS_CONTENT, #{searchValue}) > 0
+</if>
+</select>
+
+</mapper>

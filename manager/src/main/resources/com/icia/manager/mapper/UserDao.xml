@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.icia.manager.dao.UserDao">
+
+<resultMap type="com.icia.manager.model.User" id="userResultMap">
+   <id column="USER_UID" property="userUID" />
+   <result column="USER_ID" property="userId" />
+   <result column="USER_PWD" property="userPwd" />
+    <result column="USER_PHONE" property="userPhone" />
+   <result column="USER_NAME" property="userName" />
+   <result column="USER_NICK" property="userNick" />
+   <result column="USER_EMAIL" property="userEmail" />
+   <result column="STATUS" property="status" />
+   <result column="ADMIN_STATUS" property="adminStatus" />
+   <result column="REG_DATE" property="regDate" />
+   <result column="BIZ_NUM" property="bizNum" />
+   <result column="BIZ_NAME" property="bizName" />
+   <result column="RNUM" property="rNum" /> 
+</resultMap>
+
+<resultMap id="userFileResultMap" type="com.icia.manager.model.UserFile">
+	<id column="USER_UID" property="userUID" />
+	<id column="FILE_SEQ" property="fileSeq" />
+   	<result column="FILE_ORG_NAME" property="fileOrgName" />
+	<result column="FILE_NAME" property="fileName" />
+	<result column="FILE_EXT" property="fileExt" />
+	<result column="FILE_SIZE" property="fileSize" />
+	<result column="REG_DATE" property="regDate" />
+</resultMap>
+
+
+<!-- 사용자 리스트 -->
+<select id="userList" parameterType="com.icia.manager.model.User" resultMap = "userResultMap">
+SELECT RNUM,
+	   USER_UID,
+       USER_ID,
+       USER_PWD,
+       USER_PHONE,
+       USER_NAME,
+       USER_NICK,
+       USER_EMAIL,
+       STATUS,
+       ADMIN_STATUS,
+       REG_DATE,
+       BIZ_NUM,
+       BIZ_NAME
+  FROM (SELECT ROWNUM AS RNUM,
+               USER_UID,
+               USER_ID,
+               USER_PWD,
+       		   USER_PHONE,
+               USER_NAME,
+               USER_NICK,
+               USER_EMAIL,
+               STATUS,
+               ADMIN_STATUS,
+               REG_DATE,
+               BIZ_NUM,
+               BIZ_NAME
+          FROM (SELECT USER_UID,
+                       NVL(USER_ID,'') AS USER_ID,
+                       NVL(USER_PWD,'') AS USER_PWD,
+                       NVL(USER_PHONE, '') AS USER_PHONE,
+                       NVL(USER_NAME, '') AS USER_NAME,
+                       NVL(USER_NICK, '') AS USER_NICK,
+                       NVL(USER_EMAIL, '') AS USER_EMAIL,
+                       NVL(STATUS, '') AS STATUS,
+                       NVL(ADMIN_STATUS, '') AS ADMIN_STATUS,
+                       NVL(TO_CHAR(REG_DATE, 'YYYY-MM-DD HH24:MI:SS'), '') AS REG_DATE,
+                       NVL(BIZ_NUM, '') AS BIZ_NUM,
+                       NVL(BIZ_NAME, '') AS BIZ_NAME
+                  FROM T_USER
+                 WHERE 1 = 1
+			    <if test='userId != null and userId != ""'>
+			       AND USER_ID LIKE '%' || #{userId} || '%'
+			    </if>
+			    <if test='userName != null and userName != ""'>
+			       AND USER_NAME LIKE '%' || #{userName} || '%'
+			    </if>
+			    <if test='status != null and status != ""'>
+			       AND STATUS  = #{status}
+			    </if>
+                 ORDER BY REG_DATE DESC))
+ WHERE RNUM <![CDATA[>=]]> #{startRow}
+   AND RNUM <![CDATA[<=]]> #{endRow}
+ ORDER BY RNUM ASC
+</select>
+
+<!-- 사용자 수 조회 -->
+<select id="userListCount" parameterType="com.icia.manager.model.User" resultType="int">
+SELECT COUNT(USER_UID) AS CNT
+  FROM T_USER
+ WHERE 1 = 1
+<if test='userId != null and userId != ""'>
+   AND USER_ID LIKE '%' || #{userId} || '%'
+</if>
+<if test='userName != null and userName != ""'>
+   AND USER_NAME LIKE '%' || #{userName} || '%'
+</if>
+<if test='status != null and status != ""'>
+   AND STATUS  = #{status}
+</if>
+</select>
+
+<!-- 사용자 조회 -->
+<select id="userSelect" parameterType="string" resultMap="userResultMap">
+SELECT USER_UID,
+       NVL(USER_ID,'') AS USER_ID,
+       NVL(USER_PWD,'') AS USER_PWD,
+       NVL(USER_PHONE, '') AS USER_PHONE,
+       NVL(USER_NAME, '') AS USER_NAME,
+       NVL(USER_NICK, '') AS USER_NICK,
+       NVL(USER_EMAIL, '') AS USER_EMAIL,
+       NVL(STATUS, '') AS STATUS,
+       NVL(ADMIN_STATUS, '') AS ADMIN_STATUS,
+       NVL(BIZ_NUM, '') AS BIZ_NUM,
+       NVL(BIZ_NAME, '') AS BIZ_NAME,
+       NVL(TO_CHAR(REG_DATE, 'YYYY-MM-DD HH24:MI:SS'), '') AS REG_DATE
+  FROM T_USER
+ WHERE USER_ID = #{value}
+</select>
+
+<!-- 사용자UID 조회 -->
+<select id="userUIDSelect" parameterType="string" resultMap="userResultMap">
+SELECT USER_UID,
+       NVL(USER_ID,'') AS USER_ID,
+       NVL(USER_PWD,'') AS USER_PWD,
+       NVL(USER_PHONE, '') AS USER_PHONE,
+       NVL(USER_NAME, '') AS USER_NAME,
+       NVL(USER_NICK, '') AS USER_NICK,
+       NVL(USER_EMAIL, '') AS USER_EMAIL,
+       NVL(STATUS, '') AS STATUS,
+       NVL(ADMIN_STATUS, '') AS ADMIN_STATUS,
+       NVL(BIZ_NUM, '') AS BIZ_NUM,
+       NVL(BIZ_NAME, '') AS BIZ_NAME,
+       NVL(TO_CHAR(REG_DATE, 'YYYY-MM-DD HH24:MI:SS'), '') AS REG_DATE
+  FROM T_USER
+ WHERE USER_UID = #{value}
+</select>
+
+<!-- 사용자 수정 -->
+<update id="userUpdate" parameterType="com.icia.manager.model.User">
+UPDATE T_USER
+   SET USER_UID = #{userUID},
+       USER_ID = #{userId},
+       USER_PWD = #{userPwd},
+	   USER_PHONE = #{userPhone},
+       USER_NAME = #{userName},
+       USER_NICK = #{userNick},
+       USER_EMAIL = #{userEmail},
+       STATUS = #{status},
+       BIZ_NUM = #{bizNum},
+       BIZ_NAME = #{bizName}
+ WHERE USER_UID = #{userUID}
+</update>
+
+<!-- 첨부파일 조회 -->
+<select id="userFileSelect" parameterType="string" resultMap="userFileResultMap">
+SELECT USER_UID,
+       FILE_SEQ,
+       NVL(FILE_ORG_NAME, '') AS FILE_ORG_NAME,
+       NVL(FILE_NAME, '') AS FILE_NAME,
+       NVL(FILE_EXT, '') AS FILE_EXT,
+       NVL(FILE_SIZE, 0) AS FILE_SIZE,
+       NVL(TO_CHAR(REG_DATE, 'YYYY-MM-DD HH24:MI:SS'), '') REG_DATE
+  FROM T_USER_FILE
+ WHERE USER_UID = #{value}
+</select>
+
+<!-- 첨부파일 등록 -->
+<insert id="userFileInsert" parameterType="com.icia.manager.model.UserFile">
+INSERT INTO T_USER_FILE (USER_UID,
+                         FILE_SEQ,
+                         FILE_ORG_NAME,
+                         FILE_NAME,
+                         FILE_EXT,
+                         FILE_SIZE,
+                         REG_DATE)
+VALUES (#{userUID},
+        #{fileSeq},
+        #{fileOrgName},
+        #{fileName},
+        #{fileExt},
+        #{fileSize},
+	    SYSDATE)
+</insert>
+
+<!-- 첨부파일 삭제 -->
+<delete id="userFileDelete" parameterType="string">
+DELETE FROM T_USER_FILE
+ WHERE USER_UID = #{userUID}
+</delete>
+
+</mapper>

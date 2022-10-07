@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.icia.manager.dao.EntryDao">
+
+<!-- 입점문의 resultMap -->
+<resultMap id="entryResultMap" type="com.icia.manager.model.Entry">
+   <id column="ENTRY_SEQ" property="entrySeq" />
+   <result column="SHOP_NAME" property="shopName" />
+   <result column="USER_NAME" property="userName" />
+   <result column="USER_PHONE" property="userPhone" />
+   <result column="USER_EMAIL" property="userEmail" />
+   <result column="AGREEMENT" property="agreement" />
+   <result column="STATUS" property="status" />
+   <result column="RESULT_STATUS" property="resultStatus" />
+   <result column="REG_DATE" property="regDate" />
+   <result column="RNUM" property="rNum" /> 
+</resultMap>
+
+<!-- 입점문의 리스트 -->
+<select id="entryList" parameterType="com.icia.manager.model.Entry" resultMap="entryResultMap">
+SELECT RNUM,
+       ENTRY_SEQ,
+       SHOP_NAME,
+       USER_NAME,
+       STATUS,
+       RESULT_STATUS,
+       REG_DATE
+  FROM (SELECT ROWNUM AS RNUM,
+                         ENTRY_SEQ,
+                         SHOP_NAME,
+                         USER_NAME,
+                         STATUS,
+                         RESULT_STATUS,
+                         REG_DATE
+          FROM (SELECT ENTRY_SEQ,
+                       NVL(SHOP_NAME, '') AS SHOP_NAME,
+                       NVL(USER_NAME, '') AS USER_NAME,
+                       NVL(STATUS, '') AS STATUS,
+                       NVL(RESULT_STATUS, '') AS RESULT_STATUS,
+                       NVL(TO_CHAR(REG_DATE, 'YYYY-MM-DD HH24:MI:SS'), '') AS REG_DATE
+                  FROM T_ENTRY
+			   <if test='shopName != null and shopName != ""'> 
+		         WHERE SHOP_NAME LIKE '%' || #{shopName} || '%'
+			   </if>
+			   <if test='userName != null and userName != ""'>
+		         WHERE USER_NAME LIKE '%' || #{userName} || '%'
+			   </if>
+		   	   <if test='resultStatus != null and resultStatus != ""'>
+		         WHERE RESULT_STATUS LIKE '%' || #{resultStatus} || '%'
+			   </if>
+			   <if test='status != null and status != ""'>
+		         WHERE STATUS LIKE '%' || #{status} || '%'
+			   </if>
+		       ORDER BY ENTRY_SEQ DESC))
+ WHERE RNUM <![CDATA[>=]]> #{startRow}
+   AND RNUM <![CDATA[<=]]> #{endRow}
+ ORDER BY RNUM ASC
+</select>
+
+<!-- 총 입점문의 수 -->
+<select id="entryListCount" parameterType="com.icia.manager.model.Entry" resultType="long">
+SELECT COUNT(ENTRY_SEQ) AS CNT
+  FROM T_ENTRY
+<if test='shopName != null and shopName != ""'> 
+ WHERE SHOP_NAME LIKE '%' || #{shopName} || '%'
+</if>
+<if test='userName != null and userName != ""'>
+ WHERE USER_NAME LIKE '%' || #{userName} || '%'
+</if>
+<if test='resultStatus != null and resultStatus != ""'>
+ WHERE RESULT_STATUS LIKE '%' || #{resultStatus} || '%'
+</if>
+<if test='status != null and status != ""'>
+ WHERE STATUS LIKE '%' || #{status} || '%'
+</if>
+</select>
+
+<!-- 입점문의 조회 -->
+<select id="entrySelect" parameterType="long" resultMap="entryResultMap">
+SELECT ENTRY_SEQ,
+       NVL(SHOP_NAME, '') AS SHOP_NAME,
+       NVL(USER_NAME, '') AS USER_NAME,
+       NVL(USER_PHONE, '') AS USER_PHONE,
+       NVL(USER_EMAIL, '') AS USER_EMAIL,
+       NVL(AGREEMENT, '') AS AGREEMENT,
+       NVL(STATUS, '') AS STATUS,
+       NVL(RESULT_STATUS, '') AS RESULT_STATUS,
+       NVL(TO_CHAR(REG_DATE, 'YYYY-MM-DD HH24:MI:SS'), '') AS REG_DATE
+  FROM T_ENTRY
+ WHERE ENTRY_SEQ = #{value}
+</select>
+
+<!-- 입점문의 수정 -->
+<update id="entryUpdate" parameterType="com.icia.manager.model.Entry">
+UPDATE T_ENTRY
+   SET SHOP_NAME = #{shopName},
+       USER_NAME = #{userName},
+       USER_PHONE = #{userPhone},
+       USER_EMAIL = #{userEmail},
+       AGREEMENT = #{agreement},
+       STATUS = #{status},
+       RESULT_STATUS = #{resultStatus}
+ WHERE ENTRY_SEQ = #{entrySeq}
+</update>
+
+</mapper>
